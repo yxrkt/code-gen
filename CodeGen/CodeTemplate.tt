@@ -1,0 +1,35 @@
+﻿<#@ template language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#
+foreach (var type in Types)
+{
+    if (type.IsEnum())
+    {
+#>
+enum <#= type.Name #> : u8
+{
+<#
+        foreach (var @case in type.Cases)
+        {
+#>
+    <#= @case #>,
+<#
+        }
+    }
+    else
+    {
+#>
+class <#= type.Name #>
+{
+public:
+<#
+    }
+#>
+};
+
+<#
+}
+#>
