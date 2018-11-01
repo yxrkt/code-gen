@@ -8,7 +8,7 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:ei="http://schemas.microsoft.com/expression/2010/interactions"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow">
     <Window.Resources>
         <local:DocumentVM x:Key="DocumentVM"/>
 
@@ -17,6 +17,8 @@
             <Setter Property="Background" Value="#FF202020"/>
             <Setter Property="Foreground" Value="LightGray"/>
             <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="AcceptsTab" Value="True"/>
         </Style>
     </Window.Resources>
     
@@ -59,9 +61,9 @@
             <ei:DataStateBehavior Binding="{Binding Error}" Value="{x:Static sys:String.Empty}" TrueState="NoError" FalseState="Error"/>
         </i:Interaction.Behaviors>
         
-        <TextBox Grid.Column="0" Text="{Binding Json, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"/>
+        <TextBox Grid.Column="0" Text="{Binding Json, UpdateSourceTrigger=PropertyChanged}"/>
         <Rectangle Grid.Column="1" Fill="Gray"/>
-        <TextBox Grid.Column="2" Text="{Binding Cpp}" IsReadOnly="True" AcceptsReturn="True"/>
+        <TextBox Grid.Column="2" Text="{Binding Cpp}" IsReadOnly="True"/>
         
         <Grid x:Name="error" Background="#AF4040" VerticalAlignment="Bottom" Grid.ColumnSpan="3" Opacity="0" RenderTransformOrigin=".5 .5">
             <Grid.RenderTransform>
