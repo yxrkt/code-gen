@@ -6,7 +6,7 @@
 <#
 foreach (var type in Types)
 {
-    if (type.IsEnum())
+    if (IsEnum(type))
     {
 #>
 enum <#= type.Name #> : u8

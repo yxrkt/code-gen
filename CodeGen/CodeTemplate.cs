@@ -18,7 +18,7 @@ namespace CodeGen
     /// Class to produce the template output
     /// </summary>
     
-    #line 1 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+    #line 1 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "15.0.0.0")]
     public partial class CodeTemplate : CodeTemplateBase
     {
@@ -29,11 +29,11 @@ namespace CodeGen
         public virtual string TransformText()
         {
             
-            #line 6 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 6 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
 foreach (var type in Types)
 {
-    if (type.IsEnum())
+    if (IsEnum(type))
     {
 
             
@@ -41,14 +41,14 @@ foreach (var type in Types)
             #line hidden
             this.Write("enum ");
             
-            #line 12 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 12 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(type.Name));
             
             #line default
             #line hidden
             this.Write(" : u8\r\n{\r\n");
             
-            #line 14 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 14 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
         foreach (var @case in type.Cases)
         {
@@ -58,14 +58,14 @@ foreach (var type in Types)
             #line hidden
             this.Write("    ");
             
-            #line 18 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 18 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(@case));
             
             #line default
             #line hidden
             this.Write(",\r\n");
             
-            #line 19 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 19 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
         }
     }
@@ -77,14 +77,14 @@ foreach (var type in Types)
             #line hidden
             this.Write("class ");
             
-            #line 25 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 25 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(type.Name));
             
             #line default
             #line hidden
             this.Write("\r\n{\r\npublic:\r\n");
             
-            #line 28 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 28 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
     }
 
@@ -93,7 +93,7 @@ foreach (var type in Types)
             #line hidden
             this.Write("};\r\n\r\n");
             
-            #line 33 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+            #line 33 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
 }
 
