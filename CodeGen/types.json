@@ -1,0 +1,31 @@
+{
+    "types": [
+        {
+            "name": "Size",
+            "properties": [
+                {
+                    "name": "Width",
+                    "type": "f32"
+                },
+                {
+                    "name": "Height",
+                    "type": "f32"
+                }
+            ]
+        },
+        {
+            "name": "MeasureFunction",
+            "cases": [
+                {
+                    "name": "Grid"
+                },
+                {
+                    "name": "Stack"
+                },
+                {
+                    "name": "Dock"
+                }
+            ]
+        }
+    ]
+}
