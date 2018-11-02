@@ -1,13 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -78,10 +72,7 @@ namespace CodeGen
         {
             try
             {
-                var obj = (JObject)JsonConvert.DeserializeObject(Json);
-                Cpp = obj != null
-                    ? CodeGenerator.Generate(obj)
-                    : string.Empty;
+                Cpp = CodeGenerator.Generate(Json);
                 Error = string.Empty;
             }
             catch (Exception ex)

@@ -1,5 +1,5 @@
 {
-    "types:": [
+    "types": [
         {
             "name": "Size",
             "properties": [
@@ -43,28 +43,28 @@
                     "type": "u16"
                 },
                 {
-                  "cases": [
-                    {
-                      "properties": [
+                    "cases": [
                         {
-                          "name": "Width",
-                          "type": "f32"
-                        }
-                      ]
-                    },
-                    {
-                      "properties": [
-                        {
-                          "name": "MinWidth",
-                          "type": "f32"
+                            "properties": [
+                                {
+                                    "name": "Width",
+                                    "type": "f32"
+                                }
+                            ]
                         },
                         {
-                          "name": "MaxWidth",
-                          "type": "f32"
+                            "properties": [
+                                {
+                                    "name": "MinWidth",
+                                    "type": "f32"
+                                },
+                                {
+                                    "name": "MaxWidth",
+                                    "type": "f32"
+                                }
+                            ]
                         }
-                      ]
-                    }
-                  ]
+                    ]
                 },
                 {
                     "cases": [

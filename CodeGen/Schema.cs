@@ -1,70 +1,48 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeGen
 {
-    interface IProperty
+    class SchemaPropertyUnionCase
     {
+        public SchemaProperty[] Properties { get; set; }
     }
 
-    class Property : IProperty
+    class SchemaProperty
     {
-        public Property(string name, string type)
-        {
-            Name = name;
-            Type = type;
-        }
+        [JsonIgnore]
+        public bool IsUnion => Cases != null;
 
-        public string Name { get; }
-        public string Type { get; }
+        // Leaf
+        public string Name { get; set; }
+        public string Type { get; set; }
+
+        // Union
+        public SchemaPropertyUnionCase[] Cases { get; set; }
     }
 
-    class UnionProperty : IProperty
+    class SchemaUnionCase
     {
-        public IProperty[][] Cases { get; }
+        public string Name { get; set; }
+        public SchemaProperty[] Properties { get; set; }
     }
 
-    interface IType
+    class SchemaType
     {
-        string Name { get; }
+        [JsonIgnore]
+        public bool IsUnion => Cases != null;
+
+        public string Name { get; set; }
+
+        // Record
+        public SchemaProperty[] Properties { get; set; }
+
+        // Union
+        public SchemaUnionCase[] Cases { get; set; }
     }
 
-    class Record : IType
+    class SchemaTypeDefinitions
     {
-        public Record(string name, IProperty[] properties)
-        {
-            Name = name;
-            Properties = properties;
-        }
-
-        public string Name { get; }
-        public IProperty[] Properties { get; }
-    }
-
-    class UnionCase
-    {
-        public UnionCase(string name, IProperty[] properties)
-        {
-            Name = name;
-            Properties = properties;
-        }
-
-        public string Name { get; }
-        public IProperty[] Properties { get; }
-    }
-
-    class Union : IType
-    {
-        public Union(string name, UnionCase[] cases)
-        {
-            Name = name;
-            Cases = cases;
-        }
-
-        public string Name { get; }
-        public UnionCase[] Cases { get; }
+        public SchemaType[] Types { get; set; }
     }
 }

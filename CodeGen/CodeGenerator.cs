@@ -1,84 +1,109 @@
-﻿using System.Linq;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CodeGen
 {
-    internal abstract class CppPropertyBase
+    class TypeNameAndSize
     {
-        public static CppPropertyBase Create(JToken property)
+        public TypeNameAndSize(string name, int size)
         {
-            if (property.SelectToken("name") is JToken name)
-            {
-                return new CppProperty(name.ToString(), property["type"].ToString());
-            }
-            else
-            {
-                return new CppPropertyUnion(property["cases"]);
-            }
+            Name = name;
+            Size = size;
         }
+
+        public string Name { get; }
+        public int Size { get; }
     }
 
-    internal class CppProperty : CppPropertyBase
+    interface ITypeInfoPart
     {
-        public CppProperty(string name, string type)
+    }
+
+    class FieldTypeInfoPart : ITypeInfoPart
+    {
+        public FieldTypeInfoPart(string name, TypeNameAndSize type)
         {
             Name = name;
             Type = type;
         }
 
         public string Name { get; }
-        public string Type { get; }
+        public TypeNameAndSize Type { get; }
     }
 
-    internal class CppPropertyUnionCaseType
+    class UnionHeaderTypeInfoPart : ITypeInfoPart
     {
-        public CppPropertyUnionCaseType(JToken properties)
+        public UnionHeaderTypeInfoPart(int unionID, int size)
         {
-            Properties = properties.Select(p => CppPropertyBase.Create(p)).ToArray();
+            UnionID = unionID;
+            Size = size;
         }
 
-        public CppPropertyBase[] Properties { get; }
+        public int UnionID { get; }
+        public int Size { get; }
     }
 
-    internal class CppPropertyUnion : CppPropertyBase
+    class NamedUnionHeaderTypeInfoPart : UnionHeaderTypeInfoPart
     {
-        public CppPropertyUnionCaseType[] Cases { get; }
-
-        public CppPropertyUnion(JToken cases)
+        public NamedUnionHeaderTypeInfoPart(string name, int unionID, int size)
+            : base(unionID, size)
         {
-            Cases = cases.Select(c => new CppPropertyUnionCaseType(cases)).ToArray();
+            Name = name;
         }
-    }
 
-    internal class CppType
-    {
         public string Name { get; }
-        public CppPropertyBase[] Properties { get; }
-        public string[] Cases { get; }
-
-        public CppType(JToken type)
-        {
-            Name = type["name"].ToString();
-
-            if (type.SelectToken("properties") is JToken properties)
-            {
-                Properties = properties.Select(p => CppPropertyBase.Create(p)).ToArray();
-            }
-            else
-            {
-                Cases = type["cases"].Select(c => c["name"].ToString()).ToArray();
-            }
-        }
     }
 
-    internal static class CodeGenerator
+    class UnionFieldTypeInfoPart : ITypeInfoPart
     {
-        public static string Generate(JObject input)
+        public UnionFieldTypeInfoPart(int unionID, string name, TypeNameAndSize type)
         {
-            var types = input["types"].Select(t => new CppType(t)).ToArray();
+            UnionID = unionID;
+            Name = name;
+            Type = type;
+        }
 
-            var template = new CodeTemplate(types);
-            return template.TransformText();
+        public int UnionID { get; }
+        public string Name { get; }
+        public TypeNameAndSize Type { get; }
+    }
+
+    static class CodeGenerator
+    {
+        private static readonly Dictionary<string, int> intrinsicTypes = new Dictionary<string, int>
+        {
+            { "bool", 1 },
+
+            { "s8", 8 },
+            { "u8", 8 },
+            { "s16", 16 },
+            { "u16", 16 },
+            { "s32", 32 },
+            { "u32", 32 },
+            { "s64", 64 },
+            { "u64", 64 },
+
+            { "f32", 32 },
+            { "f64", 64 },
+        };
+
+        public static string Generate(string json)
+        {
+            var knownTypes = intrinsicTypes.ToDictionary(kvp => kvp.Key, kvp => new TypeNameAndSize(kvp.Key, kvp.Value));
+
+            var definitions = JsonConvert.DeserializeObject<SchemaTypeDefinitions>(json);
+
+            // TODO: schema -> parts
+
+            // TODO: parts -> tetris
+
+            return definitions.ToString();
         }
     }
 }
