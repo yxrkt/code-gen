@@ -82,10 +82,80 @@ foreach (var type in Types)
             
             #line default
             #line hidden
-            this.Write("\r\n{\r\npublic:\r\n");
+            this.Write("\r\n{\r\n");
             
-            #line 28 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            #line 27 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
+        var fields = GetOrderedFields(type);
+        foreach (var field in fields)
+        {
+
+            
+            #line default
+            #line hidden
+            this.Write("    ");
+            
+            #line 32 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(field.Type));
+            
+            #line default
+            #line hidden
+            this.Write(" ");
+            
+            #line 32 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(field.Name));
+            
+            #line default
+            #line hidden
+            this.Write(";\r\n");
+            
+            #line 33 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+        }
+
+        if (fields.Any())
+        {
+            WriteLine();
+        }
+
+            
+            #line default
+            #line hidden
+            this.Write("public:\r\n");
+            
+            #line 42 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+        bool writeNewLine = false;
+        foreach (var method in GetMethods(type))
+        {
+            if (writeNewLine)
+            {
+                WriteLine();
+            }
+
+            
+            #line default
+            #line hidden
+            this.Write("    ");
+            
+            #line 51 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(method.Signature));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    {\r\n        ");
+            
+            #line 53 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(method.Body));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    }\r\n");
+            
+            #line 55 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            writeNewLine = true;
+        }
     }
 
             
@@ -93,7 +163,7 @@ foreach (var type in Types)
             #line hidden
             this.Write("};\r\n\r\n");
             
-            #line 33 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            #line 62 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
 }
 

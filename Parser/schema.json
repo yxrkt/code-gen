@@ -1,0 +1,65 @@
+{
+  "types:": [
+    {
+      "name": "RecordType",
+      "properties": [
+        {
+          "name": "SimpleProperty",
+          "type": "Type"
+        },
+        {
+          "cases": [
+            {
+              "properties": [
+                {
+                  "name": "SimpleProperty",
+                  "type": "Type"
+                },
+                {
+                  "cases": [
+                    {
+                      "properties": [
+                        {
+                          "name": "SimpleProperty",
+                          "type": "Type"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UnionType",
+      "cases": [
+        {
+          "name": "SimpleCase"
+        },
+        {
+          "name": "DataCase",
+          "properties": [
+            {
+              "name": "SimpleProperty",
+              "type": "Type"
+            }
+          ]
+        },
+        {
+          "name": "RecursiveCase",
+          "cases": [
+            {
+              "name": "SimpleCase"
+            },
+            {
+              "name": "SimpleCase"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

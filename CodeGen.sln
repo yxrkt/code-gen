@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28010.2041
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGen", "CodeGen\CodeGen.csproj", "{33BC0A5F-6544-4BBB-8D0F-B90A2EFEA350}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Parser", "Parser\Parser.fsproj", "{D09A80D6-EF7D-48C0-B492-10E0E228BE21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{33BC0A5F-6544-4BBB-8D0F-B90A2EFEA350}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33BC0A5F-6544-4BBB-8D0F-B90A2EFEA350}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33BC0A5F-6544-4BBB-8D0F-B90A2EFEA350}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D09A80D6-EF7D-48C0-B492-10E0E228BE21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D09A80D6-EF7D-48C0-B492-10E0E228BE21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D09A80D6-EF7D-48C0-B492-10E0E228BE21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D09A80D6-EF7D-48C0-B492-10E0E228BE21}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

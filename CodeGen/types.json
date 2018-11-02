@@ -1,5 +1,5 @@
 {
-    "types": [
+    "types:": [
         {
             "name": "Size",
             "properties": [
@@ -24,6 +24,79 @@
                 },
                 {
                     "name": "Dock"
+                }
+            ]
+        },
+        {
+            "name": "MeasureParameters",
+            "properties": [
+                {
+                    "name": "MeasureFunction",
+                    "type": "MeasureFunction"
+                },
+                {
+                    "name": "ParametersOffset",
+                    "type": "u16"
+                },
+                {
+                    "name": "ChildrenCount",
+                    "type": "u16"
+                },
+                {
+                  "cases": [
+                    {
+                      "properties": [
+                        {
+                          "name": "Width",
+                          "type": "f32"
+                        }
+                      ]
+                    },
+                    {
+                      "properties": [
+                        {
+                          "name": "MinWidth",
+                          "type": "f32"
+                        },
+                        {
+                          "name": "MaxWidth",
+                          "type": "f32"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                    "cases": [
+                        {
+                            "properties": [
+                                {
+                                    "name": "Height",
+                                    "type": "f32"
+                                }
+                            ]
+                        },
+                        {
+                            "properties": [
+                                {
+                                    "name": "MinHeight",
+                                    "type": "f32"
+                                },
+                                {
+                                    "name": "MaxHeight",
+                                    "type": "f32"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "MarginCollapsed",
+                    "type": "Size"
+                },
+                {
+                    "name": "LastAvailableSize",
+                    "type": "Size"
                 }
             ]
         }

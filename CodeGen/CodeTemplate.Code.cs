@@ -112,6 +112,13 @@ namespace CodeGen
             return type.Cases?.Any() ?? false;
         }
 
+        public static void GetPropertyMetaFields(this CppType type)
+        {
+            var simpleProperties = type.Properties.OfType<CppProperty>();
+
+            var unionProperties = type.Properties.OfType<CppPropertyUnion>();
+        }
+
         public static IEnumerable<CppClassField> GetFields(this CppType type)
         {
             var fields = new List<CppClassField>();
@@ -119,44 +126,8 @@ namespace CodeGen
             {
                 if (property is CppProperty simpleProperty)
                 {
-                    simpleProperty
                 }
             }
-        }
-        // TODO: GetFields(), GetMethods()
-    }
-
-    internal static class BitUtility
-    {
-        public static uint NextPowerOfTwo(uint v)
-        {
-            v--;
-            v |= v >> 1;
-            v |= v >> 2;
-            v |= v >> 4;
-            v |= v >> 8;
-            v |= v >> 16;
-            v++;
-
-            return v;
-        }
-
-        public static uint CountBitsSet(uint v)
-        {
-            v = v - ((v >> 1) & 0x55555555);
-            v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-            return (((v + (v >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-        }
-
-        public static int GetMinimumBitsForInt(int n)
-        {
-            if (n <= 2)
-            {
-                return 1;
-            }
-
-            var nextPowerOfTwo = NextPowerOfTwo((uint)(n - 2));
-            return (int)CountBitsSet(nextPowerOfTwo - 1);
         }
     }
 }
