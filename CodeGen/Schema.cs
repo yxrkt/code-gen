@@ -1,9 +1,13 @@
 ﻿using Newtonsoft.Json;
-using System.Linq;
 
 namespace CodeGen
 {
-    class SchemaPropertyUnionCase
+    interface ISchemaUnionCase
+    {
+        SchemaProperty[] Properties { get; }
+    }
+
+    class SchemaPropertyUnionCase : ISchemaUnionCase
     {
         public SchemaProperty[] Properties { get; set; }
     }
@@ -21,7 +25,7 @@ namespace CodeGen
         public SchemaPropertyUnionCase[] Cases { get; set; }
     }
 
-    class SchemaUnionCase
+    class SchemaUnionCase : ISchemaUnionCase
     {
         public string Name { get; set; }
         public SchemaProperty[] Properties { get; set; }
