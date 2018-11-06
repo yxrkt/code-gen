@@ -21,8 +21,16 @@ namespace CodeGen
         public int Size { get; }
     }
 
+    enum TypeInfoPartClassification
+    {
+        SmallInt,
+        SmallFloat,
+        Big
+    }
+
     interface ITypeInfoPart
     {
+        int Size { get; }
     }
 
     class FieldTypeInfoPart : ITypeInfoPart
@@ -35,6 +43,7 @@ namespace CodeGen
 
         public string Name { get; }
         public TypeNameAndSize Type { get; }
+        public int Size => Type.Size;
     }
 
     class UnionHeaderTypeInfoPart : ITypeInfoPart
@@ -61,6 +70,7 @@ namespace CodeGen
         public int UnionID { get; }
         public string Name { get; }
         public TypeNameAndSize Type { get; }
+        public int Size => Type.Size;
     }
 
     class TypeInfo
@@ -122,6 +132,7 @@ namespace CodeGen
 
                 var arrangedParts = ArrangeParts(typeInfoParts);
 
+                TypeInfo typeInfo;
                 if (type.IsUnion)
                 {
                     var caseNames = type.Cases.Select(c => c.Name).ToArray();
@@ -129,7 +140,7 @@ namespace CodeGen
                 }
                 else
                 {
-
+                    //typeInfo = new TypeInfo(type.Name, )
                 }
 
                 // parts -> tetris
@@ -199,10 +210,84 @@ namespace CodeGen
                 }
             }
 
-            ITypeInfoPart[] ArrangeParts(ITypeInfoPart[] parts)
+            (ITypeInfoPart[] parts, int size) ArrangeParts(ITypeInfoPart[] parts)
             {
+                var classifiedParts = (
+                    from part in parts
+                    let classification = Classify(part)
+                    group part by classification
+                ).ToDictionary(g => g.Key, g => g.ToArray());
 
+                if (classifiedParts.TryGetValue(TypeInfoPartClassification.SmallInt, out ITypeInfoPart[] smallInts))
+                {
+                    var orderedSmallInts = smallInts.OrderByDescending(i => i.Size).ToArray();
+                    Group(orderedSmallInts).OrderBy(g => g.group).Select(g => g.part);
+                }
+
+                var smallInts = classifiedParts[TypeInfoPartClassification.SmallInt];
+
+                return (parts, 0);
+
+                TypeInfoPartClassification Classify(ITypeInfoPart part)
+                {
+                    if (part is UnionHeaderTypeInfoPart)
+                    {
+                        return TypeInfoPartClassification.SmallInt;
+                    }
+                    else
+                    {
+                        var field = part as FieldTypeInfoPart;
+                        var unionField = part as UnionFieldTypeInfoPart;
+
+                        var (name, size) = field != null ? (field.Name, field.Size) : (unionField.Name, unionField.Size);
+
+                        if (size < 64 && intrinsicTypes.ContainsKey(name))
+                        {
+                            return name.StartsWith("f") ? TypeInfoPartClassification.SmallFloat : TypeInfoPartClassification.SmallInt;
+                        }
+                        else
+                        {
+                            return TypeInfoPartClassification.Big;
+                        }
+                    }
+                }
+
+                IEnumerable<(ITypeInfoPart part, int group)> Group(ITypeInfoPart[] orderedParts)
+                {
+                    var groupSizes = new SortedList<int, int> { { 0, 0 } };
+
+                    foreach (var part in orderedParts)
+                    {
+                        bool grouped = false;
+                        foreach (var (id, size) in groupSizes)
+                        {
+                            var combinedSize = size + part.Size;
+                            if (combinedSize <= 64)
+                            {
+                                yield return (part, id);
+                                grouped = true;
+                                break;
+                            }
+                        }
+
+                        if (!grouped)
+                        {
+                            var groupIndex = groupSizes.Count;
+                            groupSizes.Add(groupIndex, part.Size);
+                            yield return (part, groupIndex);
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    public static class Extensions
+    {
+        public static void Deconstruct<T1, T2>(this KeyValuePair<T1, T2> tuple, out T1 key, out T2 value)
+        {
+            key = tuple.Key;
+            value = tuple.Value;
         }
     }
 }
