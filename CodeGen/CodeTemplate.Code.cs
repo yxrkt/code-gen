@@ -6,5 +6,11 @@ namespace CodeGen
 {
     partial class CodeTemplate
     {
+        internal CodeTemplate(IEnumerable<TypeInfo> types)
+        {
+            Types = types.ToArray();
+        }
+
+        private IEnumerable<TypeInfo> Types { get; }
     }
 }

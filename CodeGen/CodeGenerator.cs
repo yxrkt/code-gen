@@ -23,9 +23,9 @@ namespace CodeGen
 
     enum TypeInfoPartClassification
     {
-        SmallInt,
-        SmallFloat,
-        Big
+        Int,
+        Float,
+        Other
     }
 
     interface ITypeInfoPart
@@ -80,6 +80,16 @@ namespace CodeGen
             Name = name;
             Size = size;
             Parts = parts;
+
+            var bitFieldSize = parts.TakeWhile(part => part.Classify() == TypeInfoPartClassification.Int).Sum(part => part.Size);
+            BitFieldType =
+                bitFieldSize <= 8
+                ? "u8"
+                : bitFieldSize <= 16
+                ? "u16"
+                : bitFieldSize <= 32
+                ? "u32"
+                : "u64";
         }
 
         public TypeInfo(string name, int size, string[] caseNames, ITypeInfoPart[] parts)
@@ -91,6 +101,8 @@ namespace CodeGen
         public string Name { get; }
 
         public int Size { get; }
+
+        public string BitFieldType { get; }
 
         public ITypeInfoPart[] Parts { get; }
 
@@ -126,29 +138,38 @@ namespace CodeGen
 
             var definitions = JsonConvert.DeserializeObject<SchemaTypeDefinitions>(json);
 
+            var typesToGenerate = new List<TypeInfo>();
             foreach (var type in definitions.Types)
             {
                 var typeInfoParts = GetTypeInfoParts(type).ToArray();
 
-                var arrangedParts = ArrangeParts(typeInfoParts);
-
-                TypeInfo typeInfo;
-                if (type.IsUnion)
+                var arrangedParts = ArrangeParts(typeInfoParts).ToArray();
+                var totalSize = arrangedParts.Aggregate(0, (size, part) =>
                 {
-                    var caseNames = type.Cases.Select(c => c.Name).ToArray();
-                    
-                }
-                else
-                {
-                    //typeInfo = new TypeInfo(type.Name, )
-                }
+                    var wordOffset = size % 64;
+                    if (wordOffset > 0 &&
+                        wordOffset + part.Size > 64)
+                    {
+                        size += 64 - wordOffset;
+                    }
 
-                // parts -> tetris
-                // knownTypes.Add
-                // type -> c++
+                    return size + part.Size;
+                });
+
+                totalSize = (64 - (totalSize % 64)) % 64;
+
+                var typeInfo =
+                    type.IsUnion
+                    ? new TypeInfo(type.Name, totalSize, type.Cases.Select(c => c.Name).ToArray(), arrangedParts)
+                    : new TypeInfo(type.Name, totalSize, arrangedParts);
+
+                typesToGenerate.Add(typeInfo);
+
+                knownTypes.Add(typeInfo.Name, new TypeNameAndSize(typeInfo.Name, typeInfo.Size));
             }
 
-            return definitions.ToString();
+            var codeTemplate = new CodeTemplate(typesToGenerate);
+            return codeTemplate.TransformText();
 
             IEnumerable<ITypeInfoPart> GetTypeInfoParts(SchemaType type)
             {
@@ -210,45 +231,37 @@ namespace CodeGen
                 }
             }
 
-            (ITypeInfoPart[] parts, int size) ArrangeParts(ITypeInfoPart[] parts)
+            IEnumerable<ITypeInfoPart> ArrangeParts(ITypeInfoPart[] parts)
             {
                 var classifiedParts = (
                     from part in parts
-                    let classification = Classify(part)
+                    let classification = part.Classify()
                     group part by classification
                 ).ToDictionary(g => g.Key, g => g.ToArray());
 
-                if (classifiedParts.TryGetValue(TypeInfoPartClassification.SmallInt, out ITypeInfoPart[] smallInts))
+                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Int, out ITypeInfoPart[] intParts))
                 {
-                    var orderedSmallInts = smallInts.OrderByDescending(i => i.Size).ToArray();
-                    Group(orderedSmallInts).OrderBy(g => g.group).Select(g => g.part);
+                    var orderedSmallInts = intParts.OrderByDescending(i => i.Size).ToArray();
+                    var packedSmallInts = Group(orderedSmallInts).OrderBy(g => g.group).Select(g => g.part);
+                    foreach (var part in packedSmallInts)
+                    {
+                        yield return part;
+                    }
                 }
 
-                var smallInts = classifiedParts[TypeInfoPartClassification.SmallInt];
-
-                return (parts, 0);
-
-                TypeInfoPartClassification Classify(ITypeInfoPart part)
+                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Float, out ITypeInfoPart[] floatParts))
                 {
-                    if (part is UnionHeaderTypeInfoPart)
+                    foreach (var part in floatParts)
                     {
-                        return TypeInfoPartClassification.SmallInt;
+                        yield return part;
                     }
-                    else
+                }
+
+                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Other, out ITypeInfoPart[] otherParts))
+                {
+                    foreach (var part in otherParts)
                     {
-                        var field = part as FieldTypeInfoPart;
-                        var unionField = part as UnionFieldTypeInfoPart;
-
-                        var (name, size) = field != null ? (field.Name, field.Size) : (unionField.Name, unionField.Size);
-
-                        if (size < 64 && intrinsicTypes.ContainsKey(name))
-                        {
-                            return name.StartsWith("f") ? TypeInfoPartClassification.SmallFloat : TypeInfoPartClassification.SmallInt;
-                        }
-                        else
-                        {
-                            return TypeInfoPartClassification.Big;
-                        }
+                        yield return part;
                     }
                 }
 
@@ -277,6 +290,30 @@ namespace CodeGen
                             yield return (part, groupIndex);
                         }
                     }
+                }
+            }
+        }
+
+        public static TypeInfoPartClassification Classify(this ITypeInfoPart part)
+        {
+            if (part is UnionHeaderTypeInfoPart)
+            {
+                return TypeInfoPartClassification.Int;
+            }
+            else
+            {
+                var field = part as FieldTypeInfoPart;
+                var unionField = part as UnionFieldTypeInfoPart;
+
+                var (name, size) = field != null ? (field.Name, field.Size) : (unionField.Name, unionField.Size);
+
+                if (size < 64 && intrinsicTypes.ContainsKey(name))
+                {
+                    return name.StartsWith("f") ? TypeInfoPartClassification.Float : TypeInfoPartClassification.Int;
+                }
+                else
+                {
+                    return TypeInfoPartClassification.Other;
                 }
             }
         }
