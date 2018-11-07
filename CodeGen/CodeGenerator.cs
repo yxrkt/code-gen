@@ -3,6 +3,7 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -98,7 +99,11 @@ namespace CodeGen
 
         public static string GenerateCode(string json)
         {
+            var discoveredTypes = intrinsicTypes.ToDictionary(type => type.Name, type => type);
+
             var schemaDefinitions = JsonConvert.DeserializeObject<SchemaTypeDefinitions>(json);
+
+            var nextUnionID = 0;
 
             // 1. Generate parts
             // 2. Bin-pack 0-alignment parts into bigger bit-field parts
@@ -109,6 +114,63 @@ namespace CodeGen
             // 7. Sort properties based on schema
 
             return "";
+
+            IEnumerable<Part> GenerateParts(SchemaType type)
+            {
+                if (type.IsUnion)
+                {
+
+                }
+                else
+                {
+                    foreach (var property in type.Properties)
+                    {
+                        if (property.IsUnion)
+                        {
+                            foreach (var part in GenerateUnionPropertyParts(property))
+                            {
+                                yield return part;
+                            }
+                        }
+                        else
+                        {
+                            if (discoveredTypes.TryGetValue(property.Type, out PartType partType))
+                            {
+                                yield return new Part(property.Name, partType, -1, -1);
+                            }
+                            else
+                            {
+                                throw new Exception($"Unknown type '{property.Type}'");
+                            }
+                        }
+                    }
+                }
+            }
+
+            IEnumerable<Part> GenerateUnionPropertyParts(SchemaProperty unionProperty)
+            {
+                Trace.Assert(unionProperty.IsUnion);
+
+                var alignment = 0;
+                var size = 0;
+                var currentCaseSize = 0;
+
+                IEnumerable<Part> TraverseUnion(SchemaProperty property)
+                {
+                    var unionID = nextUnionID++;
+
+                    var headerPartType = new PartType("", 0, Utilities.GetMinimumBitsForInt(property.Cases.Length));
+                    yield return new Part("", headerPartType, unionID, -1);
+
+                    foreach (var @case in property.Cases)
+                    {
+                        foreach (var caseProperty in @case.Properties)
+                        {
+
+                        }
+                    }
+                }
+            }
         }
     }
 }
