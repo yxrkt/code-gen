@@ -9,322 +9,106 @@ using System.Threading.Tasks;
 
 namespace CodeGen
 {
-    class TypeNameAndSize
+    class PartType
     {
-        public TypeNameAndSize(string name, int size)
+        public PartType(string name, int alignment, int bits)
         {
             Name = name;
-            Size = size;
+            Alignment = alignment;
+            Bits = bits;
         }
 
+        // Name used for method and field generation. When empty, indicates that we're an anonymous union or union header type.
         public string Name { get; }
-        public int Size { get; }
+
+        // Byte alignment for the type. When 0, indicates that the field will be packed in a bit field.
+        public int Alignment { get; }
+
+        // Size of the type, in bits.
+        public int Bits { get; }
     }
 
-    enum TypeInfoPartClassification
+    class Part
     {
-        Int,
-        Float,
-        Other
-    }
-
-    interface ITypeInfoPart
-    {
-        int Size { get; }
-    }
-
-    class FieldTypeInfoPart : ITypeInfoPart
-    {
-        public FieldTypeInfoPart(string name, TypeNameAndSize type)
+        public Part(string name, PartType type, int unionID, int unionCaseID)
         {
             Name = name;
             Type = type;
+            UnionID = unionID;
+            UnionCaseID = unionCaseID;
         }
 
+        // Name used for method and field generation.
         public string Name { get; }
-        public TypeNameAndSize Type { get; }
-        public int Size => Type.Size;
-    }
 
-    class UnionHeaderTypeInfoPart : ITypeInfoPart
-    {
-        public UnionHeaderTypeInfoPart(int unionID, int size)
-        {
-            UnionID = unionID;
-            Size = size;
-        }
+        public PartType Type { get; }
 
+        // For union and union header parts, identifies the union. Otherwise, -1.
         public int UnionID { get; }
-        public int Size { get; }
+
+        // For union fields, identifies the case where the field is valid.
+        public int UnionCaseID { get; }
+
+        // Cases for unions
+        public Part[] Children { get; }
     }
 
-    class UnionFieldTypeInfoPart : ITypeInfoPart
+    class Field
     {
-        public UnionFieldTypeInfoPart(int unionID, string name, TypeNameAndSize type)
+        public Field(string type, string name)
         {
-            UnionID = unionID;
-            Name = name;
             Type = type;
+            Name = name;
         }
 
-        public int UnionID { get; }
+        public string Type { get; }
         public string Name { get; }
-        public TypeNameAndSize Type { get; }
-        public int Size => Type.Size;
     }
 
-    class TypeInfo
+    class Property
     {
-        public TypeInfo(string name, int size, ITypeInfoPart[] parts)
+        public Property(Field[] unionStateFields, int[] unionStates, Field value)
         {
-            Name = name;
-            Size = size;
-            Parts = parts;
-
-            var bitFieldSize = parts.TakeWhile(part => part.Classify() == TypeInfoPartClassification.Int).Sum(part => part.Size);
-            BitFieldType =
-                bitFieldSize <= 8
-                ? "u8"
-                : bitFieldSize <= 16
-                ? "u16"
-                : bitFieldSize <= 32
-                ? "u32"
-                : "u64";
+            UnionStateFields = unionStateFields;
+            UnionStates = unionStates;
+            Value = value;
         }
 
-        public TypeInfo(string name, int size, string[] caseNames, ITypeInfoPart[] parts)
-            : this(name, size, parts)
-        {
-            CaseNames = caseNames;
-        }
-
-        public string Name { get; }
-
-        public int Size { get; }
-
-        public string BitFieldType { get; }
-
-        public ITypeInfoPart[] Parts { get; }
-
-        public string[] CaseNames { get; }
-
-        public bool IsUnion => CaseNames?.Any() ?? false;
+        public Field[] UnionStateFields { get; }
+        public int[] UnionStates { get; }
+        public Field Value { get; }
     }
 
     static class CodeGenerator
     {
-        private static readonly Dictionary<string, int> intrinsicTypes = new Dictionary<string, int>
+        private static readonly PartType[] intrinsicTypes =
         {
-            { "bool", 1 },
-
-            { "s8", 8 },
-            { "u8", 8 },
-            { "s16", 16 },
-            { "u16", 16 },
-            { "s32", 32 },
-            { "u32", 32 },
-            { "s64", 64 },
-            { "u64", 64 },
-
-            { "f32", 32 },
-            { "f64", 64 },
+            new PartType(name: "bool", alignment: 0, bits: 1),
+            new PartType(name: "s8", alignment: 1, bits: 8),
+            new PartType(name: "u8", alignment: 1, bits: 8),
+            new PartType(name: "s16", alignment: 2, bits: 16),
+            new PartType(name: "u16", alignment: 2, bits: 16),
+            new PartType(name: "s32", alignment: 4, bits: 32),
+            new PartType(name: "u32", alignment: 4, bits: 32),
+            new PartType(name: "s64", alignment: 8, bits: 64),
+            new PartType(name: "u64", alignment: 8, bits: 64),
+            new PartType(name: "f32", alignment: 4, bits: 32),
+            new PartType(name: "f64", alignment: 8, bits: 64),
         };
 
-        public static string Generate(string json)
+        public static string GenerateCode(string json)
         {
-            var knownTypes = intrinsicTypes.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new TypeNameAndSize(kvp.Key, kvp.Value));
+            var schemaDefinitions = JsonConvert.DeserializeObject<SchemaTypeDefinitions>(json);
 
-            var definitions = JsonConvert.DeserializeObject<SchemaTypeDefinitions>(json);
+            // 1. Generate parts
+            // 2. Bin-pack 0-alignment parts into bigger bit-field parts
+            // 3. Minimize size of last bit-field part
+            // 4. Bin-pack bit-field and small field parts
+            // 5. Sort large field parts by alignment, ascending
+            // 6. Generate fields and properties
+            // 7. Sort properties based on schema
 
-            var typesToGenerate = new List<TypeInfo>();
-            foreach (var type in definitions.Types)
-            {
-                var typeInfoParts = GetTypeInfoParts(type).ToArray();
-
-                var arrangedParts = ArrangeParts(typeInfoParts).ToArray();
-                var totalSize = arrangedParts.Aggregate(0, (size, part) =>
-                {
-                    var wordOffset = size % 64;
-                    if (wordOffset > 0 &&
-                        wordOffset + part.Size > 64)
-                    {
-                        size += 64 - wordOffset;
-                    }
-
-                    return size + part.Size;
-                });
-
-                totalSize = (64 - (totalSize % 64)) % 64;
-
-                var typeInfo =
-                    type.IsUnion
-                    ? new TypeInfo(type.Name, totalSize, type.Cases.Select(c => c.Name).ToArray(), arrangedParts)
-                    : new TypeInfo(type.Name, totalSize, arrangedParts);
-
-                typesToGenerate.Add(typeInfo);
-
-                knownTypes.Add(typeInfo.Name, new TypeNameAndSize(typeInfo.Name, typeInfo.Size));
-            }
-
-            var codeTemplate = new CodeTemplate(typesToGenerate);
-            return codeTemplate.TransformText();
-
-            IEnumerable<ITypeInfoPart> GetTypeInfoParts(SchemaType type)
-            {
-                var nextUnionID = 0;
-                if (type.IsUnion)
-                {
-                    foreach (var part in GetUnionTypeInfoParts(type.Cases))
-                    {
-                        yield return part;
-                    }
-                }
-                else
-                {
-                    foreach (var property in type.Properties)
-                    {
-                        if (property.IsUnion)
-                        {
-                            foreach (var part in GetUnionTypeInfoParts(property.Cases))
-                            {
-                                yield return part;
-                            }
-                        }
-                        else
-                        {
-                            yield return new FieldTypeInfoPart(
-                                name: property.Name,
-                                type: knownTypes[property.Type]);
-                        }
-                    }
-                }
-
-                IEnumerable<ITypeInfoPart> GetUnionTypeInfoParts(ISchemaUnionCase[] cases)
-                {
-                    var unionID = nextUnionID++;
-
-                    var headerSize = Utilities.GetMinimumBitsForInt(cases.Length);
-                    yield return new UnionHeaderTypeInfoPart(unionID, headerSize);
-
-                    foreach (var @case in cases)
-                    {
-                        foreach (var property in @case.Properties)
-                        {
-                            if (property.IsUnion)
-                            {
-                                foreach (var part in GetUnionTypeInfoParts(property.Cases))
-                                {
-                                    yield return part;
-                                }
-                            }
-                            else
-                            {
-                                yield return new UnionFieldTypeInfoPart(
-                                    unionID: unionID,
-                                    name: property.Name,
-                                    type: knownTypes[property.Type]);
-                            }
-                        }
-                    }
-                }
-            }
-
-            IEnumerable<ITypeInfoPart> ArrangeParts(ITypeInfoPart[] parts)
-            {
-                var classifiedParts = (
-                    from part in parts
-                    let classification = part.Classify()
-                    group part by classification
-                ).ToDictionary(g => g.Key, g => g.ToArray());
-
-                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Int, out ITypeInfoPart[] intParts))
-                {
-                    var orderedSmallInts = intParts.OrderByDescending(i => i.Size).ToArray();
-                    var packedSmallInts = Group(orderedSmallInts).OrderBy(g => g.group).Select(g => g.part);
-                    foreach (var part in packedSmallInts)
-                    {
-                        yield return part;
-                    }
-                }
-
-                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Float, out ITypeInfoPart[] floatParts))
-                {
-                    foreach (var part in floatParts)
-                    {
-                        yield return part;
-                    }
-                }
-
-                if (classifiedParts.TryGetValue(TypeInfoPartClassification.Other, out ITypeInfoPart[] otherParts))
-                {
-                    foreach (var part in otherParts)
-                    {
-                        yield return part;
-                    }
-                }
-
-                IEnumerable<(ITypeInfoPart part, int group)> Group(ITypeInfoPart[] orderedParts)
-                {
-                    var groupSizes = new SortedList<int, int> { { 0, 0 } };
-
-                    foreach (var part in orderedParts)
-                    {
-                        bool grouped = false;
-                        foreach (var (id, size) in groupSizes)
-                        {
-                            var combinedSize = size + part.Size;
-                            if (combinedSize <= 64)
-                            {
-                                yield return (part, id);
-                                grouped = true;
-                                break;
-                            }
-                        }
-
-                        if (!grouped)
-                        {
-                            var groupIndex = groupSizes.Count;
-                            groupSizes.Add(groupIndex, part.Size);
-                            yield return (part, groupIndex);
-                        }
-                    }
-                }
-            }
-        }
-
-        public static TypeInfoPartClassification Classify(this ITypeInfoPart part)
-        {
-            if (part is UnionHeaderTypeInfoPart)
-            {
-                return TypeInfoPartClassification.Int;
-            }
-            else
-            {
-                var field = part as FieldTypeInfoPart;
-                var unionField = part as UnionFieldTypeInfoPart;
-
-                var (name, size) = field != null ? (field.Name, field.Size) : (unionField.Name, unionField.Size);
-
-                if (size < 64 && intrinsicTypes.ContainsKey(name))
-                {
-                    return name.StartsWith("f") ? TypeInfoPartClassification.Float : TypeInfoPartClassification.Int;
-                }
-                else
-                {
-                    return TypeInfoPartClassification.Other;
-                }
-            }
-        }
-    }
-
-    public static class Extensions
-    {
-        public static void Deconstruct<T1, T2>(this KeyValuePair<T1, T2> tuple, out T1 key, out T2 value)
-        {
-            key = tuple.Key;
-            value = tuple.Value;
+            return "";
         }
     }
 }
