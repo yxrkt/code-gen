@@ -6,11 +6,11 @@ namespace CodeGen
 {
     partial class CodeTemplate
     {
-        internal CodeTemplate(IEnumerable<TypeInfo> types)
+        internal CodeTemplate(IEnumerable<ICppType> types)
         {
             Types = types.ToArray();
         }
 
-        private IEnumerable<TypeInfo> Types { get; }
+        private IEnumerable<ICppType> Types { get; }
     }
 }
