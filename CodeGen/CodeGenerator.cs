@@ -1,12 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace CodeGen
 {
@@ -22,63 +17,87 @@ namespace CodeGen
         // Name used for method and field generation. When empty, indicates that we're an anonymous union or union header type.
         public string Name { get; }
 
-        // Byte alignment for the type. When 0, indicates that the field will be packed in a bit field.
+        // Byte alignment for the type. When 0, indicates that the field can be packed in a bit field.
         public int Alignment { get; }
 
         // Size of the type, in bits.
         public int Bits { get; }
     }
 
-    class CppPart
+    interface ICppPart
     {
-        public CppPart(string name, CppTypeInfo type, int unionID, int unionCaseID, params CppPart[] children)
-        {
-            Name = name;
-            Type = type;
-            UnionID = unionID;
-            UnionCaseID = unionCaseID;
-            Children = children;
-        }
-
-        // Name used for method and field generation.
-        public string Name { get; }
-
-        public CppTypeInfo Type { get; }
-
-        // For union and union header parts, identifies the union. Otherwise, -1.
-        public int UnionID { get; }
-
-        // For union fields, identifies the case where the field is valid.
-        public int UnionCaseID { get; }
-
-        // Cases for unions
-        public CppPart[] Children { get; }
     }
 
-    class CppField
+    class CppPropertyPart : ICppPart
     {
-        public CppField(string type, string name)
+        public CppPropertyPart(CppTypeInfo type, string name)
         {
             Type = type;
             Name = name;
         }
 
-        public string Type { get; }
+        public CppTypeInfo Type { get; }
         public string Name { get; }
+    }
+
+    class CppUnionHeaderPart : ICppPart
+    {
+        public CppUnionHeaderPart(int iD, int bits)
+        {
+            ID = iD;
+            Bits = bits;
+        }
+
+        public int ID { get; }
+        public int Bits { get; }
+    }
+
+    class CppUnionCase
+    {
+        public CppUnionCase(ICppPart[] parts)
+        {
+            Parts = parts;
+        }
+
+        public ICppPart[] Parts { get; }
+    }
+
+    class CppUnionBodyPart : ICppPart
+    {
+        public CppUnionBodyPart(int iD, CppUnionCase[] cases)
+        {
+            ID = iD;
+            Cases = cases;
+        }
+
+        public int ID { get; }
+        public CppUnionCase[] Cases { get; }
+    }
+
+    class CppPropertyCondition
+    {
+        public CppPropertyCondition(int unionID, int unionCase)
+        {
+            UnionID = unionID;
+            UnionCase = unionCase;
+        }
+
+        public int UnionID { get; }
+        public int UnionCase { get; }
     }
 
     class CppProperty
     {
-        public CppProperty(CppField[] unionStateFields, int[] unionStates, CppField value)
+        public CppProperty(CppTypeInfo type, string name, params CppPropertyCondition[] conditions)
         {
-            UnionStateFields = unionStateFields;
-            UnionStates = unionStates;
-            Value = value;
+            Type = type;
+            Name = name;
+            Conditions = conditions;
         }
 
-        public CppField[] UnionStateFields { get; }
-        public int[] UnionStates { get; }
-        public CppField Value { get; }
+        public CppTypeInfo Type { get; }
+        public string Name { get; }
+        public CppPropertyCondition[] Conditions { get; }
     }
 
     interface ICppType
@@ -88,16 +107,28 @@ namespace CodeGen
 
     class CppClass : ICppType
     {
-        public CppClass(CppTypeInfo typeInfo, CppField[] fields, CppProperty[] properties)
+        public CppClass(CppTypeInfo typeInfo, ICppPart[] parts, CppProperty[] properties)
         {
             TypeInfo = typeInfo;
-            Fields = fields;
+            Parts = parts;
             Properties = properties;
         }
 
         public CppTypeInfo TypeInfo { get; }
-        public CppField[] Fields { get; }
+        public ICppPart[] Parts { get; }
         public CppProperty[] Properties { get; }
+    }
+
+    class CppEnum : ICppType
+    {
+        public CppEnum(CppTypeInfo typeInfo, string[] cases)
+        {
+            TypeInfo = typeInfo;
+            Cases = cases;
+        }
+
+        public CppTypeInfo TypeInfo { get; }
+        public string[] Cases { get; }
     }
 
     static class CodeGenerator
@@ -131,133 +162,147 @@ namespace CodeGen
 
             ICppType GenerateType(SchemaType schemaType)
             {
-                var nextUnionID = 0;
+                var topLevelParts = GenerateParts(schemaType);
 
-                // 1. Generate parts
-                var parts = GenerateParts(schemaType).ToArray();
+                var properties = new List<CppProperty>();
 
-                // 2. Bin-pack 0-alignment parts into bigger bit-field parts
-                var bitFieldParts = BinPackBitFields(parts.Where(part => part.Type.Alignment == 0));
-                parts = BinPackBitFields(parts).ToArray();
+                GenerateProperties(topLevelParts);
 
-                // 3. Minimize size of last bit-field part
-
-                // 4. Bin-pack bit-field and small field parts
-
-                // 5. Sort large field parts by alignment, ascending
-
-                // 6. Generate fields and properties
-
-                // 7. Sort properties based on schema
+                var optimizedTopLevelParts = OptimizePartLayout(topLevelParts);
 
                 return null;
+
+                void GenerateProperties(ICppPart[] parts, params CppPropertyCondition[] conditions)
+                {
+                    foreach (var part in parts)
+                    {
+                        switch (part)
+                        {
+                            case CppPropertyPart property:
+                                properties.Add(new CppProperty(property.Type, property.Name, conditions));
+                                break;
+                            case CppUnionHeaderPart unionHeader:
+                                var headerFieldType = new CppTypeInfo("", 0, unionHeader.Bits);
+                                break;
+                            case CppUnionBodyPart unionBody:
+                                foreach (var (unionCase, i) in unionBody.Cases.Select((c, i) => (c, i)))
+                                {
+                                    var caseCondition = new CppPropertyCondition(unionBody.ID, i);
+                                    GenerateProperties(unionCase.Parts, conditions.Concat(new[] { caseCondition }).ToArray());
+                                }
+
+                                break;
+                        }
+                    }
+                }
+
+                (ICppPart[] parts, CppTypeInfo type) OptimizePartLayout(ICppPart[] unoptimizedParts)
+                {
+                    var unoptimizedPartsAndTypes = GetPartsAndTypes(unoptimizedParts);
+                    return ArrangeParts(unoptimizedPartsAndTypes);
+
+                    (ICppPart part, CppTypeInfo type)[] GetPartsAndTypes(ICppPart[] parts)
+                    {
+                        return parts.Select<ICppPart, ValueTuple<ICppPart, CppTypeInfo>>(part =>
+                        {
+                            switch (part)
+                            {
+                                case CppPropertyPart property:
+                                    return (property, property.Type);
+                                case CppUnionHeaderPart unionHeader:
+                                    return (unionHeader, new CppTypeInfo("", 0, unionHeader.Bits));
+                                case CppUnionBodyPart unionBody:
+                                    var optimizedCases = new List<CppUnionCase>();
+                                    var unionBodySize = 8;
+                                    var unionBodyAlignment = 1;
+                                    foreach (var unionCase in unionBody.Cases)
+                                    {
+                                        (ICppPart[] caseParts, CppTypeInfo caseType) = OptimizePartLayout(unionCase.Parts);
+                                        unionBodySize = Math.Max(caseType.Bits, unionBodySize);
+                                        unionBodyAlignment = Math.Max(caseType.Alignment, unionBodyAlignment);
+                                        optimizedCases.Add(new CppUnionCase(caseParts));
+                                    }
+
+                                    var unionBodyType = new CppTypeInfo("", unionBodyAlignment, unionBodySize);
+                                    return (new CppUnionBodyPart(unionBody.ID, optimizedCases.ToArray()), unionBodyType);
+                            }
+
+                            throw new ArgumentNullException(nameof(part));
+                        }).ToArray();
+                    }
+
+                    (ICppPart[] parts, CppTypeInfo type) ArrangeParts((ICppPart part, CppTypeInfo type)[] typesAndParts)
+                    {
+                        throw new NotImplementedException(); // TODO: ArrangeParts
+                    }
+                }
             }
 
-            IEnumerable<CppPart> GenerateParts(SchemaType type)
+            ICppPart[] GenerateParts(SchemaType schemaType)
             {
-                if (type.IsUnion)
-                {
+                var nextUnionID = 0;
 
+                var cppParts = new List<ICppPart>();
+
+                if (schemaType.IsUnion)
+                {
+                    throw new NotImplementedException(); // TODO: Union type
                 }
                 else
                 {
-                    foreach (var property in type.Properties)
+                    foreach (var property in schemaType.Properties)
                     {
                         if (property.IsUnion)
                         {
-                            var headers = new List<CppPart>();
-                            var bodies = new List<CppPart>();
-                            foreach (var part in GenerateUnionPropertyParts(property))
-                            {
-                                yield return part;
-                            }
+                            cppParts.Add(GenerateUnionParts(property.Cases));
                         }
                         else
                         {
-                            yield return new CppPart(property.Name, LookupType(property.Type), -1, -1);
+                            cppParts.Add(new CppPropertyPart(GetTypeInfo(property.Type), property.Name));
                         }
-                    }
+                    } 
                 }
 
-                IEnumerable<CppPart> GenerateUnionPropertyParts(SchemaProperty unionProperty, int unionCaseID = -1)
+                return cppParts.ToArray();
+
+                CppUnionBodyPart GenerateUnionParts(SchemaPropertyUnionCase[] schemaCases)
                 {
                     var unionID = nextUnionID++;
 
-                    var headerType = new CppTypeInfo("", 0, Utilities.GetMinimumBitsForInt(unionProperty.Cases.Length));
-                    yield return new CppPart($"Union{unionID}State", headerType, unionID, unionCaseID);
+                    cppParts.Add(new CppUnionHeaderPart(unionID, Utilities.GetMinimumBitsForInt(schemaCases.Length)));
 
-                    var cases = new List<CppPart>();
-
-                    var caseID = 0;
-                    foreach (var @case in unionProperty.Cases)
+                    var unionCases = new List<CppUnionCase>();
+                    foreach (var schemaCase in schemaCases)
                     {
-                        var caseProperties = new List<CppPart>();
-                        foreach (var property in @case.Properties)
+                        var unionCaseParts = new List<ICppPart>();
+                        foreach (var property in schemaCase.Properties)
                         {
                             if (property.IsUnion)
                             {
-                                var childParts = GenerateUnionPropertyParts(property, caseID).Reverse().ToArray();
-
-                                var childUnionPart = childParts.First();
-                                caseProperties.Add(childUnionPart);
-
-                                foreach (var descendantHeader in childParts.Skip(1))
-                                {
-                                    yield return descendantHeader;
-                                }
+                                unionCaseParts.Add(GenerateUnionParts(property.Cases));
                             }
                             else
                             {
-                                caseProperties.Add(new CppPart(property.Name, LookupType(property.Type), -1, caseID));
+                                unionCaseParts.Add(new CppPropertyPart(GetTypeInfo(property.Type), property.Name));
                             }
                         }
 
-                        var caseType = new CppTypeInfo(
-                            name: "",
-                            alignment: caseProperties.Max(part => part.Type.Alignment),
-                            bits: caseProperties.Max(part => part.Type.Bits));
-                        cases.Add(new CppPart("", caseType, unionID, unionCaseID, caseChildren.ToArray()));
-
-                        caseID++;
+                        unionCases.Add(new CppUnionCase(unionCaseParts.ToArray()));
                     }
 
-                    var unionType = new CppTypeInfo("", cases.Max(c => c.Type.Alignment), cases.Max(c => c.Type.Bits));
-                    yield return new CppPart("", unionType, )
-            }
-            }
-
-            CppPart[] BinPackBitFields(IEnumerable<CppPart> parts)
-            {
-                var orderedParts = parts.OrderByDescending(part => part.Type.Bits).ToArray();
-
-                var bins = new List<List<CppPart>>();
-                foreach (var part in orderedParts)
-                {
-                    if (part.Type.Bits >= MaxBitFieldBits)
-                    {
-                        throw new Exception($"{part.Name}: Exceeded {MaxBitFieldBits} bits");
-                    }
-
-                    if (bins.Find(b => b.Sum(p => p.Type.Bits) + part.Type.Bits <= MaxBitFieldBits) is List<CppPart> bin)
-                    {
-                        bin.Add(part);
-                    }
-                    else
-                    {
-                        bins.Add(new List<CppPart>() { part });
-                    }
+                    return new CppUnionBodyPart(unionID, unionCases.ToArray());
                 }
             }
 
-            CppTypeInfo LookupType(string name)
+            CppTypeInfo GetTypeInfo(string typeName)
             {
-                if (discoveredTypes.TryGetValue(name, out CppTypeInfo partType))
+                if (discoveredTypes.TryGetValue(typeName, out CppTypeInfo typeInfo))
                 {
-                    return partType;
+                    return typeInfo;
                 }
                 else
                 {
-                    throw new Exception($"Unknown type '{name}'");
+                    throw new Exception($"Type '{typeName}' has not yet been defined.");
                 }
             }
         }
