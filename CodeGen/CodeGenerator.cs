@@ -233,7 +233,32 @@ namespace CodeGen
 
                     (ICppPart[] parts, CppTypeInfo type) ArrangeParts((ICppPart part, CppTypeInfo type)[] typesAndParts)
                     {
-                        throw new NotImplementedException(); // TODO: ArrangeParts
+                        var bitFieldParts = new List<(ICppPart part, CppTypeInfo type)>();
+                        var smallParts = new List<(ICppPart part, CppTypeInfo type)>();
+                        var largeParts = new List<(ICppPart part, CppTypeInfo type)>();
+
+                        foreach (var typeAndPart in typesAndParts)
+                        {
+                            if (typeAndPart.type.Alignment == 0)
+                            {
+                                bitFieldParts.Add(typeAndPart);
+                            }
+                            else if (typeAndPart.type.Bits < MaxBitFieldBits)
+                            {
+                                smallParts.Add(typeAndPart);
+                            }
+                            else
+                            {
+                                largeParts.Add(typeAndPart);
+                            }
+                        }
+
+                        var bitFieldBins = bitFieldParts.BinPack(64, typeAndPart => typeAndPart.type.Bits);
+                        var typedBitFields =
+                            from bin in bitFieldBins
+                            let bitFieldSize = new[] { 8, 16, 32, 64 }.First(size => size <= bin.size)
+                            from typeAndPart in bin.items
+
                     }
                 }
             }

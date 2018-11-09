@@ -58,6 +58,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="CodeGenerator.cs" />
+    <Compile Include="EnumerableExtensions.cs" />
     <Compile Include="Schema.cs" />
     <Compile Include="Utilities.cs" />
     <Page Include="MainWindow.xaml">

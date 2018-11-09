@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CodeGen
 {
-    internal class Utilities
+    internal static class Utilities
     {
         public static uint NextPowerOfTwo(uint v)
         {
