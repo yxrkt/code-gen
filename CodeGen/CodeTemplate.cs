@@ -18,7 +18,7 @@ namespace CodeGen
     /// Class to produce the template output
     /// </summary>
     
-    #line 1 "C:\Users\aseri\Documents\Visual Studio 2017\Projects\CodeGen\CodeGen\CodeTemplate.tt"
+    #line 1 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "15.0.0.0")]
     public partial class CodeTemplate : CodeTemplateBase
     {
@@ -28,6 +28,235 @@ namespace CodeGen
         /// </summary>
         public virtual string TransformText()
         {
+            this.Write("#pragma once\r\n\r\n");
+            
+            #line 8 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+foreach (var type in Types)
+{
+    if (type is CppEnum @enum)
+    {
+
+            
+            #line default
+            #line hidden
+            this.Write("enum class ");
+            
+            #line 14 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(@enum.TypeInfo.Name));
+            
+            #line default
+            #line hidden
+            this.Write(" : ");
+            
+            #line 14 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(@enum.UnderlyingType.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n{\r\n};\r\n");
+            
+            #line 17 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+    }
+    else if (type is CppClass @class)
+    {
+
+            
+            #line default
+            #line hidden
+            this.Write("teALIGN_PREFIX(8)\r\nclass ");
+            
+            #line 23 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(@class.TypeInfo.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n{\r\npublic:\r\n");
+            
+            #line 26 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+        foreach (var property in @class.Properties)
+        {
+            var condition = GetAvailabilityCondition(property);
+            if (condition != "")
+            {
+
+            
+            #line default
+            #line hidden
+            this.Write("    bool Is");
+            
+            #line 33 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(property.Name));
+            
+            #line default
+            #line hidden
+            this.Write("Available() const\r\n    {\r\n        return ");
+            
+            #line 35 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(condition));
+            
+            #line default
+            #line hidden
+            this.Write(";\r\n    }\r\n\r\n");
+            
+            #line 38 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            }
+
+            
+            #line default
+            #line hidden
+            this.Write("    ");
+            
+            #line 41 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(GetReturnType(property.Type)));
+            
+            #line default
+            #line hidden
+            this.Write(" ");
+            
+            #line 41 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(property.Name));
+            
+            #line default
+            #line hidden
+            this.Write("()\r\n    {\r\n");
+            
+            #line 43 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            if (condition != "")
+            {
+
+            
+            #line default
+            #line hidden
+            this.Write("        teASSERT(Is");
+            
+            #line 47 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(property.Name));
+            
+            #line default
+            #line hidden
+            this.Write("Available());\r\n");
+            
+            #line 48 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            }
+
+            
+            #line default
+            #line hidden
+            this.Write("        return ");
+            
+            #line 51 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(GetFieldName(property.Name)));
+            
+            #line default
+            #line hidden
+            this.Write(";\r\n    }\r\n\r\n    void ");
+            
+            #line 54 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(property.Name));
+            
+            #line default
+            #line hidden
+            this.Write("(");
+            
+            #line 54 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(GetParameterType(property.Type)));
+            
+            #line default
+            #line hidden
+            this.Write(" value)\r\n    {\r\n");
+            
+            #line 56 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            foreach (var update in GetAvailablilityConditionUpdates(property))
+            {
+
+            
+            #line default
+            #line hidden
+            this.Write("        ");
+            
+            #line 60 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(update));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n");
+            
+            #line 61 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            }
+
+            
+            #line default
+            #line hidden
+            this.Write("        ");
+            
+            #line 64 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(GetFieldName(property.Name)));
+            
+            #line default
+            #line hidden
+            this.Write(" = value;\r\n    }\r\n");
+            
+            #line 66 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+        }
+
+            
+            #line default
+            #line hidden
+            this.Write("\r\nprivate:\r\n");
+            
+            #line 71 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+        foreach (var part in type.Parts)
+        {
+            foreach (var line in GetPartLines(part))
+            {
+
+            
+            #line default
+            #line hidden
+            this.Write("        ");
+            
+            #line 77 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(line));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n");
+            
+            #line 78 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+            }
+        }
+
+            
+            #line default
+            #line hidden
+            this.Write("} teALIGN_SUFFIX(8);\r\n\r\n");
+            
+            #line 84 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+    }
+
+            
+            #line default
+            #line hidden
+            
+            #line 87 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
+
+}
+
+            
+            #line default
+            #line hidden
             return this.GenerationEnvironment.ToString();
         }
     }

@@ -37,6 +37,7 @@ namespace CodeGen
         public bool IsUnion => Cases != null;
 
         public string Name { get; set; }
+        public int Alignment { get; set; };
 
         // Record
         public SchemaProperty[] Properties { get; set; }

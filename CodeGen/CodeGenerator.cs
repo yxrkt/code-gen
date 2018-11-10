@@ -74,6 +74,18 @@ namespace CodeGen
         public CppUnionCase[] Cases { get; }
     }
 
+    class CppBitFieldPart : ICppPart
+    {
+        public CppBitFieldPart(CppTypeInfo type, ICppPart[] parts)
+        {
+            Type = type;
+            Parts = parts;
+        }
+
+        public CppTypeInfo Type { get; }
+        public ICppPart[] Parts { get; }
+    }
+
     class CppPropertyCondition
     {
         public CppPropertyCondition(int unionID, int unionCase)
@@ -128,11 +140,13 @@ namespace CodeGen
         }
 
         public CppTypeInfo TypeInfo { get; }
+        public CppTypeInfo UnderlyingType { get; }
         public string[] Cases { get; }
     }
 
     static class CodeGenerator
     {
+        private const int AlignmentBits = 64;
         private const int MaxBitFieldBits = 64;
 
         private static readonly CppTypeInfo[] intrinsicTypes =
@@ -168,9 +182,14 @@ namespace CodeGen
 
                 GenerateProperties(topLevelParts);
 
-                var optimizedTopLevelParts = OptimizePartLayout(topLevelParts);
+                var (finalTopLevelParts, topLevelType) = OptimizePartLayout(topLevelParts);
 
-                return null;
+                var namedType = new CppTypeInfo(
+                    name: schemaType.Name,
+                    alignment: Math.Max(topLevelType.Alignment, schemaType.Alignment),
+                    bits: topLevelType.Bits);
+                discoveredTypes.Add(namedType.Name, namedType);
+                return new CppClass(namedType, finalTopLevelParts, properties.ToArray());
 
                 void GenerateProperties(ICppPart[] parts, params CppPropertyCondition[] conditions)
                 {
@@ -233,7 +252,7 @@ namespace CodeGen
 
                     (ICppPart[] parts, CppTypeInfo type) ArrangeParts((ICppPart part, CppTypeInfo type)[] typesAndParts)
                     {
-                        var bitFieldParts = new List<(ICppPart part, CppTypeInfo type)>();
+                        var bitParts = new List<(ICppPart part, CppTypeInfo type)>();
                         var smallParts = new List<(ICppPart part, CppTypeInfo type)>();
                         var largeParts = new List<(ICppPart part, CppTypeInfo type)>();
 
@@ -241,9 +260,9 @@ namespace CodeGen
                         {
                             if (typeAndPart.type.Alignment == 0)
                             {
-                                bitFieldParts.Add(typeAndPart);
+                                bitParts.Add(typeAndPart);
                             }
-                            else if (typeAndPart.type.Bits < MaxBitFieldBits)
+                            else if (typeAndPart.type.Bits < AlignmentBits)
                             {
                                 smallParts.Add(typeAndPart);
                             }
@@ -253,12 +272,38 @@ namespace CodeGen
                             }
                         }
 
-                        var bitFieldBins = bitFieldParts.BinPack(64, typeAndPart => typeAndPart.type.Bits);
-                        var typedBitFields =
+                        var bitFieldBins = bitParts.BinPack(MaxBitFieldBits, typeAndPart => typeAndPart.type.Bits);
+                        var bitFieldParts = (
                             from bin in bitFieldBins
-                            let bitFieldSize = new[] { 8, 16, 32, 64 }.First(size => size <= bin.size)
-                            from typeAndPart in bin.items
+                            let bitFieldSize = new[] { 8, 16, 32, 64 }.First(size => bin.size <= size)
+                            let bitFieldType = GetTypeInfo($"u{bitFieldSize}")
+                            let parts = bin.items.Select(pair => pair.part).ToArray()
+                            select (part: (ICppPart)new CppBitFieldPart(bitFieldType, parts), type: bitFieldType)
+                        ).ToArray();
 
+                        var packedSmallParts =
+                            bitFieldParts.Concat(smallParts).BinPack(
+                                binSize: AlignmentBits,
+                                sizeSelector: pair => pair.type.Bits,
+                                sumSelector: (binSize, pair) => Utilities.AddWithAlignment(binSize, pair.type.Bits, pair.type.Alignment));
+
+                        var packedLargeParts = largeParts.OrderBy(pair => pair.type.Alignment).ToArray();
+
+                        var (finalParts, finalTypeSize, finalTypeAlignment) =
+                            packedSmallParts.SelectMany(bin => bin.items).Concat(packedLargeParts).Aggregate(
+                                seed: (parts: new List<ICppPart>(), typeSize: 0, typeAlignment: 0),
+                                func: (aggregate, pair) =>
+                                {
+                                    aggregate.parts.Add(pair.part);
+                                    aggregate.typeSize = Utilities.AddWithAlignment(
+                                        blockSize: aggregate.typeSize,
+                                        itemSize: pair.type.Bits,
+                                        itemAlignment: pair.type.Alignment);
+                                    aggregate.typeAlignment = Math.Max(pair.type.Alignment, aggregate.typeAlignment);
+                                    return aggregate;
+                                });
+
+                        return (parts: finalParts.ToArray(), new CppTypeInfo("", finalTypeAlignment, finalTypeSize));
                     }
                 }
             }

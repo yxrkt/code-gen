@@ -38,5 +38,16 @@ namespace CodeGen
             var nextPowerOfTwo = NextPowerOfTwo((uint)(n - 2));
             return (int)CountBitsSet(nextPowerOfTwo - 1);
         }
+
+        public static int AddWithAlignment(int blockSize, int itemSize, int itemAlignment)
+        {
+            if (blockSize == 0)
+            {
+                return itemSize;
+            }
+
+            var padding = itemAlignment - (blockSize % itemAlignment);
+            return blockSize + padding + itemSize;
+        }
     }
 }

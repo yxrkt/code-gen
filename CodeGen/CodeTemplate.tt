@@ -3,3 +3,87 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+#pragma once
+
+<#
+foreach (var type in Types)
+{
+    if (type is CppEnum @enum)
+    {
+#>
+enum class <#= @enum.TypeInfo.Name #> : <#= @enum.UnderlyingType.Name #>
+{
+};
+<#
+    }
+    else if (type is CppClass @class)
+    {
+#>
+teALIGN_PREFIX(8)
+class <#= @class.TypeInfo.Name #>
+{
+public:
+<#
+        foreach (var property in @class.Properties)
+        {
+            var condition = GetAvailabilityCondition(property);
+            if (condition != "")
+            {
+#>
+    bool Is<#= property.Name #>Available() const
+    {
+        return <#= condition #>;
+    }
+
+<#
+            }
+#>
+    <#= GetReturnType(property.Type) #> <#= property.Name #>()
+    {
+<#
+            if (condition != "")
+            {
+#>
+        teASSERT(Is<#= property.Name #>Available());
+<#
+            }
+#>
+        return <#= GetFieldName(property.Name) #>;
+    }
+
+    void <#= property.Name #>(<#= GetParameterType(property.Type) #> value)
+    {
+<#
+            foreach (var update in GetAvailablilityConditionUpdates(property))
+            {
+#>
+        <#= update #>
+<#
+            }
+#>
+        <#= GetFieldName(property.Name) #> = value;
+    }
+<#
+        }
+#>
+
+private:
+<#
+        foreach (var part in type.Parts)
+        {
+            foreach (var line in GetPartLines(part))
+            {
+#>
+        <#= line #>
+<#
+            }
+        }
+#>
+} teALIGN_SUFFIX(8);
+
+<#
+    }
+#>
+<#
+}
+#>
