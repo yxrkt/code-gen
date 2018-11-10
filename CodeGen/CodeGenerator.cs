@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
 
 namespace CodeGen
 {
+    [DebuggerDisplay("Name = {Name}, Alignment = {Alignment}, Bits = {Bits}")]
     class CppTypeInfo
     {
         public CppTypeInfo(string name, int alignment, int bits)
@@ -296,9 +298,9 @@ namespace CodeGen
                                 {
                                     aggregate.parts.Add(pair.part);
                                     aggregate.typeSize = Utilities.AddWithAlignment(
-                                        blockSize: aggregate.typeSize,
-                                        itemSize: pair.type.Bits,
-                                        itemAlignment: pair.type.Alignment);
+                                        blockBits: aggregate.typeSize,
+                                        itemBits: pair.type.Bits,
+                                        itemByteAlignment: pair.type.Alignment);
                                     aggregate.typeAlignment = Math.Max(pair.type.Alignment, aggregate.typeAlignment);
                                     return aggregate;
                                 });

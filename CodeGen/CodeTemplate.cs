@@ -215,7 +215,7 @@ foreach (var type in Types)
             
             #line 71 "C:\Users\aserio\Documents\code\code-gen\CodeGen\CodeTemplate.tt"
 
-        foreach (var part in type.Parts)
+        foreach (var part in @class.Parts)
         {
             foreach (var line in GetPartLines(part))
             {

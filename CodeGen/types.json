@@ -14,25 +14,12 @@
             ]
         },
         {
-            "name": "MeasureFunction",
-            "cases": [
-                {
-                    "name": "Grid"
-                },
-                {
-                    "name": "Stack"
-                },
-                {
-                    "name": "Dock"
-                }
-            ]
-        },
-        {
             "name": "MeasureParameters",
+            "alignment":  8,
             "properties": [
                 {
                     "name": "MeasureFunction",
-                    "type": "MeasureFunction"
+                    "type": "u8"
                 },
                 {
                     "name": "ParametersOffset",

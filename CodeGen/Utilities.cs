@@ -39,15 +39,17 @@ namespace CodeGen
             return (int)CountBitsSet(nextPowerOfTwo - 1);
         }
 
-        public static int AddWithAlignment(int blockSize, int itemSize, int itemAlignment)
+        public static int AddWithAlignment(int blockBits, int itemBits, int itemByteAlignment)
         {
-            if (blockSize == 0)
+            if (blockBits == 0)
             {
-                return itemSize;
+                return itemBits;
             }
 
-            var padding = itemAlignment - (blockSize % itemAlignment);
-            return blockSize + padding + itemSize;
+            var bitAlignment = itemByteAlignment * 8;
+            var remainder = blockBits % bitAlignment;
+            var padding = remainder > 0 ? bitAlignment - remainder : 0;
+            return blockBits + padding + itemBits;
         }
     }
 }

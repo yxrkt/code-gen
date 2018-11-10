@@ -72,7 +72,7 @@ namespace CodeGen
         {
             try
             {
-                Cpp = CodeGenerator.Generate(Json);
+                Cpp = CodeGenerator.GenerateCode(Json);
                 Error = string.Empty;
             }
             catch (Exception ex)

@@ -69,7 +69,7 @@ public:
 
 private:
 <#
-        foreach (var part in type.Parts)
+        foreach (var part in @class.Parts)
         {
             foreach (var line in GetPartLines(part))
             {
