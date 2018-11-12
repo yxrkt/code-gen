@@ -107,13 +107,6 @@ namespace CodeGen
         {
             return type.Bits <= 64
                 ? type.Name
-                : $"{type.Name}&";
-        }
-
-        private string GetConstReturnType(CppTypeInfo type)
-        {
-            return type.Bits <= 64
-                ? type.Name
                 : $"const {type.Name}&";
         }
 

@@ -19,7 +19,7 @@ enum class <#= @enum.TypeInfo.Name #> : <#= @enum.UnderlyingType.Name #>
     else if (type is CppClass @class)
     {
 #>
-teALIGN_PREFIX(8)
+teALIGN_PREFIX(<#= @class.TypeInfo.Alignment #>)
 class <#= @class.TypeInfo.Name #>
 {
 public:
@@ -38,7 +38,7 @@ public:
 <#
             }
 #>
-    <#= GetReturnType(property.Type) #> <#= property.Name #>()
+    <#= GetReturnType(property.Type) #> <#= property.Name #>() const
     {
 <#
             if (condition != "")
@@ -63,10 +63,10 @@ public:
 #>
         <#= GetFieldName(property.Name) #> = value;
     }
+
 <#
         }
 #>
-
 private:
 <#
         foreach (var part in @class.Parts)
@@ -74,12 +74,12 @@ private:
             foreach (var line in GetPartLines(part))
             {
 #>
-        <#= line #>
+    <#= line #>
 <#
             }
         }
 #>
-} teALIGN_SUFFIX(8);
+} teALIGN_SUFFIX(<#= @class.TypeInfo.Alignment #>);
 
 <#
     }

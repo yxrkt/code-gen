@@ -35,7 +35,7 @@ namespace CodeGen
                 return 1;
             }
 
-            var nextPowerOfTwo = NextPowerOfTwo((uint)(n - 2));
+            var nextPowerOfTwo = NextPowerOfTwo((uint)n);
             return (int)CountBitsSet(nextPowerOfTwo - 1);
         }
 

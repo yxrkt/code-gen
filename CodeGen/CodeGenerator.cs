@@ -287,7 +287,7 @@ namespace CodeGen
                             bitFieldParts.Concat(smallParts).BinPack(
                                 binSize: AlignmentBits,
                                 sizeSelector: pair => pair.type.Bits,
-                                sumSelector: (binSize, pair) => Utilities.AddWithAlignment(binSize, pair.type.Bits, pair.type.Alignment));
+                                sumFunc: (binSize, pair) => Utilities.AddWithAlignment(binSize, pair.type.Bits, pair.type.Alignment));
 
                         var packedLargeParts = largeParts.OrderBy(pair => pair.type.Alignment).ToArray();
 

@@ -18,7 +18,7 @@ namespace CodeGen
             this IEnumerable<T> self,
             int binSize,
             Func<T, int> sizeSelector,
-            Func<int, T, int> sumSelector)
+            Func<int, T, int> sumFunc)
         {
             var bins = new List<(List<T> items, int size)>();
 
@@ -26,7 +26,7 @@ namespace CodeGen
             {
                 var availableBinsQuery =
                     from bin in bins
-                    let binSizeWithItem = sumSelector(bin.size, item)
+                    let binSizeWithItem = sumFunc(bin.size, item)
                     where binSizeWithItem <= binSize
                     select (bin: bin, newSize: binSizeWithItem);
 
@@ -38,7 +38,7 @@ namespace CodeGen
                 }
                 else
                 {
-                    bins.Add((items: new List<T> { item }, size: sumSelector(0, item)));
+                    bins.Add((items: new List<T> { item }, size: sumFunc(0, item)));
                 }
             }
 
